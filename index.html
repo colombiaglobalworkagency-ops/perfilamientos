@@ -11,500 +11,368 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <title>Global Work Agency</title>
   <style>
-    /* =====================================================
-       RESET & BASE
-    ===================================================== */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --black:   #111111;
-      --gray:    #f4f4f4;
-      --border:  #e0e0e0;
-      --text:    #333;
-      --muted:   #888;
-      --radius:  14px;
+      --black: #111;
+      --gray:  #f4f4f4;
+      --border:#e0e0e0;
+      --text:  #333;
+      --muted: #888;
+      --r:     14px;
       --safe-top: env(safe-area-inset-top, 0px);
       --safe-bot: env(safe-area-inset-bottom, 0px);
     }
 
     html, body {
       height: 100%;
-      font-family: -apple-system, "Segoe UI", sans-serif;
+      font-family: -apple-system, "Segoe UI", Montserrat, sans-serif;
       background: #f7f7f7;
       color: var(--text);
-      overflow-x: hidden;
+      overflow: hidden;
     }
 
-    /* =====================================================
-       SHELL
-    ===================================================== */
-    #app {
+    /* ---- PANTALLAS ---- */
+    .screen {
+      position: fixed;
+      inset: 0;
       display: flex;
       flex-direction: column;
-      min-height: 100dvh;
+      background: #f7f7f7;
+      transform: translateX(100%);
+      transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
+      will-change: transform;
     }
+    .screen.active  { transform: translateX(0); }
+    .screen.behind  { transform: translateX(-40%); }
 
-    /* =====================================================
-       HEADER
-    ===================================================== */
+    /* ---- HEADER ---- */
     .app-header {
       background: var(--black);
       color: #fff;
-      padding: calc(var(--safe-top) + 18px) 20px 18px;
+      padding: calc(var(--safe-top) + 16px) 20px 16px;
       display: flex;
       align-items: center;
       gap: 12px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-
-    .app-header .logo {
-      width: 36px;
-      height: 36px;
-      background: #fff;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 900;
-      color: var(--black);
-      font-size: 13px;
-      letter-spacing: -0.5px;
       flex-shrink: 0;
     }
-
-    .app-header h1 {
-      font-size: 17px;
-      font-weight: 700;
-      line-height: 1.2;
+    .app-header .back-btn {
+      width: 34px; height: 34px;
+      background: rgba(255,255,255,0.12);
+      border: none; border-radius: 50%;
+      color: #fff; font-size: 18px;
+      cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      flex-shrink: 0;
     }
-
-    .app-header p {
-      font-size: 12px;
-      opacity: 0.65;
-      margin-top: 2px;
+    .header-logo {
+      width: 34px; height: 34px;
+      background: #fff; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; color: var(--black); font-size: 12px;
+      flex-shrink: 0;
     }
+    .app-header h1 { font-size: 16px; font-weight: 700; }
+    .app-header p  { font-size: 11px; opacity: 0.6; margin-top: 2px; }
 
-    /* =====================================================
-       PROGRESS BAR
-    ===================================================== */
+    /* ---- PROGRESS ---- */
     .progress-wrap {
       background: var(--black);
-      padding: 0 20px 16px;
-    }
-
-    .progress-steps {
-      display: flex;
-      align-items: center;
-      gap: 0;
-    }
-
-    .ps-dot {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.3);
-      color: rgba(255,255,255,0.4);
-      font-size: 12px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      padding: 0 20px 14px;
       flex-shrink: 0;
-      transition: all 0.3s ease;
     }
-
-    .ps-dot.done {
-      background: #fff;
-      border-color: #fff;
-      color: var(--black);
+    .progress-steps { display: flex; align-items: center; }
+    .ps-dot {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.3);
+      color: rgba(255,255,255,0.4); font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all 0.3s;
     }
+    .ps-dot.done   { background:#fff; border-color:#fff; color:var(--black); }
+    .ps-dot.active { border-color:#fff; color:#fff; box-shadow:0 0 0 3px rgba(255,255,255,0.2); }
+    .ps-line { flex:1; height:2px; background:rgba(255,255,255,0.2); transition:background 0.3s; }
+    .ps-line.done { background:#fff; }
+    .progress-label { color:rgba(255,255,255,0.6); font-size:11px; margin-top:8px; }
+    .progress-label span { color:#fff; font-weight:700; }
 
-    .ps-dot.active {
-      background: transparent;
-      border-color: #fff;
-      color: #fff;
-      box-shadow: 0 0 0 3px rgba(255,255,255,0.2);
-    }
-
-    .ps-line {
-      flex: 1;
-      height: 2px;
-      background: rgba(255,255,255,0.2);
-      transition: background 0.3s ease;
-    }
-
-    .ps-line.done { background: #fff; }
-
-    .progress-label {
-      color: rgba(255,255,255,0.6);
-      font-size: 12px;
-      margin-top: 10px;
-    }
-
-    .progress-label span { color: #fff; font-weight: 700; }
-
-    /* =====================================================
-       SCROLL AREA
-    ===================================================== */
+    /* ---- SCROLL ---- */
     .scroll-area {
-      flex: 1;
-      overflow-y: auto;
+      flex: 1; overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 20px 20px calc(var(--safe-bot) + 100px);
+      padding: 20px 20px calc(var(--safe-bot) + 90px);
     }
 
-    /* =====================================================
-       SECTIONS (PASOS)
-    ===================================================== */
-    .step-section { display: none; }
-    .step-section.active { display: block; }
-
-    .section-title {
-      font-size: 20px;
-      font-weight: 800;
-      color: var(--black);
-      margin-bottom: 6px;
-    }
-
-    .section-sub {
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 24px;
-    }
-
-    /* =====================================================
-       CAMPOS
-    ===================================================== */
-    .campo {
-      margin-bottom: 18px;
-    }
-
+    /* ---- CAMPOS ---- */
+    .campo { margin-bottom: 16px; }
     .campo label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 7px;
+      display: block; font-size: 13px; font-weight: 600;
+      color: var(--text); margin-bottom: 6px;
     }
-
-    .campo label .req {
-      color: #e53e3e;
-      margin-left: 2px;
-    }
+    .campo label .req { color: #e53e3e; margin-left: 2px; }
 
     .campo input,
     .campo select,
     .campo textarea {
-      width: 100%;
-      padding: 14px 16px;
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius);
-      font-size: 16px; /* 16px evita zoom en iOS */
-      font-family: inherit;
-      color: var(--text);
-      background: #fff;
-      appearance: none;
-      -webkit-appearance: none;
-      outline: none;
+      width: 100%; padding: 13px 15px;
+      border: 1.5px solid var(--border); border-radius: var(--r);
+      font-size: 16px; font-family: inherit; color: var(--text);
+      background: #fff; outline: none;
+      -webkit-appearance: none; appearance: none;
       transition: border-color 0.2s, box-shadow 0.2s;
     }
-
     .campo select {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 16px center;
-      padding-right: 40px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+      padding-right: 38px;
     }
-
     .campo input:focus,
     .campo select:focus,
     .campo textarea:focus {
       border-color: var(--black);
       box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
     }
+    .campo textarea { min-height: 88px; resize: vertical; line-height: 1.5; }
 
-    .campo textarea {
-      min-height: 90px;
-      resize: vertical;
-      line-height: 1.5;
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+    .form-grid .full { grid-column: 1/-1; }
+
+    /* precio row */
+    .precio-row { display: flex; gap: 10px; }
+    .precio-row select { width: 110px; flex-shrink: 0; }
+    .precio-row input  { flex: 1; }
+
+    /* ---- CONTACTO CARD ---- */
+    .contact-card {
+      background: #fff; border-radius: var(--r);
+      border: 1.5px solid var(--black);
+      padding: 16px; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .contact-avatar {
+      width: 46px; height: 46px; background: var(--black);
+      border-radius: 50%; color: #fff; font-size: 18px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .contact-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+    .contact-card p  { font-size: 12px; color: var(--muted); }
+    .contact-card .change-btn {
+      margin-left: auto; background: none; border: 1.5px solid var(--border);
+      border-radius: 20px; padding: 6px 12px; font-size: 12px; font-weight: 600;
+      cursor: pointer; flex-shrink: 0;
     }
 
-    .campo input[type="file"] {
-      padding: 12px;
-      background: var(--gray);
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    /* Precio + divisa en fila */
-    .precio-row {
-      display: flex;
-      gap: 10px;
-    }
-
-    .precio-row select {
-      width: 110px;
-      flex-shrink: 0;
-    }
-
-    .precio-row input { flex: 1; }
-
-    /* GRID 2 columnas */
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0 14px;
-    }
-
-    .form-grid .campo { }
-    .form-grid .campo.full { grid-column: 1 / -1; }
-
-    /* =====================================================
-       CARD
-    ===================================================== */
-    .card {
-      background: #fff;
-      border-radius: var(--radius);
-      padding: 18px;
-      border: 1px solid var(--border);
-      margin-bottom: 16px;
-    }
-
-    .card-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 14px;
-    }
-
-    /* =====================================================
-       ARCHIVO ITEM
-    ===================================================== */
+    /* ---- ARCHIVOS ---- */
     .file-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px;
-      background: var(--gray);
-      border-radius: 12px;
-      margin-bottom: 10px;
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px; background: #fff;
+      border: 1.5px solid var(--border); border-radius: var(--r);
+      margin-bottom: 10px; cursor: pointer;
+      transition: border-color 0.2s;
     }
-
+    .file-item.ok { border-color: #22c55e; }
     .file-icon {
-      width: 40px;
-      height: 40px;
-      background: var(--black);
-      color: #fff;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      flex-shrink: 0;
+      width: 40px; height: 40px; background: var(--gray);
+      border-radius: 10px; display: flex; align-items: center;
+      justify-content: center; font-size: 20px; flex-shrink: 0;
     }
-
-    .file-info label {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text);
-      display: block;
-      margin-bottom: 4px;
-    }
-
-    .file-status {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .file-status.ok { color: #22c55e; font-weight: 600; }
-
+    .file-item.ok .file-icon { background: #dcfce7; }
+    .file-info label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 3px; }
+    .file-status { font-size: 12px; color: var(--muted); }
+    .file-status.ok { color: #16a34a; font-weight: 600; }
     .file-input-hidden { display: none; }
 
-    /* =====================================================
-       BOTTOM BAR (botones navegación)
-    ===================================================== */
+    /* ---- CARD ---- */
+    .card {
+      background:#fff; border-radius:var(--r);
+      border:1px solid var(--border); padding:16px; margin-bottom:16px;
+    }
+    .card-title {
+      font-size:12px; font-weight:700; color:var(--muted);
+      text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px;
+    }
+
+    /* ---- BOTTOM BAR ---- */
     .bottom-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: #fff;
-      border-top: 1px solid var(--border);
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #fff; border-top: 1px solid var(--border);
       padding: 12px 20px calc(var(--safe-bot) + 12px);
-      display: flex;
-      gap: 10px;
-      z-index: 200;
+      display: flex; gap: 10px; z-index: 200;
     }
-
     .btn {
-      flex: 1;
-      padding: 15px;
-      border-radius: 50px;
-      border: none;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
-      font-family: inherit;
+      flex: 1; padding: 15px; border-radius: 50px; border: none;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s; font-family: inherit;
     }
-
     .btn:active { transform: scale(0.97); opacity: 0.85; }
+    .btn-primary  { background: var(--black); color: #fff; }
+    .btn-secondary { background: var(--gray); color: var(--black); flex: 0 0 90px; }
+    .btn:disabled { opacity: 0.4; pointer-events: none; }
 
-    .btn-primary {
-      background: var(--black);
-      color: #fff;
-    }
-
-    .btn-secondary {
-      background: var(--gray);
-      color: var(--black);
-      flex: 0 0 90px;
-    }
-
-    .btn:disabled {
-      opacity: 0.4;
-      pointer-events: none;
-    }
-
-    /* =====================================================
-       TOAST
-    ===================================================== */
+    /* ---- TOAST ---- */
     #toast {
-      position: fixed;
-      bottom: 100px;
-      left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: var(--black);
-      color: #fff;
-      padding: 12px 22px;
-      border-radius: 50px;
-      font-size: 14px;
-      font-weight: 600;
-      opacity: 0;
-      pointer-events: none;
-      transition: all 0.3s ease;
-      white-space: nowrap;
-      z-index: 9999;
+      position: fixed; bottom: 110px; left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      background: #222; color: #fff;
+      padding: 11px 22px; border-radius: 50px;
+      font-size: 14px; font-weight: 600;
+      opacity: 0; pointer-events: none;
+      transition: all 0.3s; white-space: nowrap; z-index: 9999;
     }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    #toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-
-    /* =====================================================
-       LOADER
-    ===================================================== */
+    /* ---- LOADER ---- */
     #loader {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(255,255,255,0.95);
-      z-index: 9998;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
+      display: none; position: fixed; inset: 0;
+      background: rgba(255,255,255,0.96);
+      z-index: 9998; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
     }
-
     #loader.show { display: flex; }
-
-    .loader-spinner {
-      width: 48px;
-      height: 48px;
-      border: 4px solid var(--border);
-      border-top-color: var(--black);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+    .spinner {
+      width: 46px; height: 46px;
+      border: 4px solid var(--border); border-top-color: var(--black);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
     }
-
     @keyframes spin { to { transform: rotate(360deg); } }
+    #loader p { font-size: 15px; font-weight: 600; color: var(--text); }
 
-    #loader p {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text);
-    }
-
-    /* =====================================================
-       PANTALLA DE ÉXITO
-    ===================================================== */
+    /* ---- SUCCESS ---- */
     #successScreen {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: #fff;
-      z-index: 9997;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 40px;
-      text-align: center;
+      display: none; position: fixed; inset: 0; background: #fff;
+      z-index: 9997; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 40px; text-align: center;
     }
-
     #successScreen.show { display: flex; }
-
     .success-icon {
-      width: 80px;
-      height: 80px;
-      background: var(--black);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 36px;
+      width: 76px; height: 76px; background: var(--black); border-radius: 50%;
+      color: #fff; font-size: 34px;
+      display: flex; align-items: center; justify-content: center;
       margin-bottom: 24px;
-      animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      animation: popIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275) forwards;
+    }
+    @keyframes popIn { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+    #successScreen h2 { font-size: 24px; font-weight: 800; margin-bottom: 10px; }
+    #successScreen p  { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 32px; }
+
+    /* ---- SEARCH SCREEN ---- */
+    #screenBuscar .scroll-area { padding-bottom: calc(var(--safe-bot) + 20px); }
+
+    .search-input-wrap {
+      display: flex; align-items: center; gap: 10px;
+      background: #fff; border: 1.5px solid var(--border);
+      border-radius: var(--r); padding: 0 16px;
+      transition: border-color 0.2s;
+    }
+    .search-input-wrap:focus-within { border-color: var(--black); }
+    .search-input-wrap span { font-size: 18px; flex-shrink: 0; }
+    .search-input-wrap input {
+      flex: 1; padding: 14px 0; border: none; background: transparent;
+      font-size: 16px; font-family: inherit; outline: none;
     }
 
-    @keyframes popIn {
-      from { transform: scale(0); opacity: 0; }
-      to   { transform: scale(1); opacity: 1; }
+    .result-item {
+      background: #fff; border-radius: var(--r);
+      border: 1px solid var(--border); padding: 16px;
+      margin-top: 12px; display: flex;
+      align-items: center; gap: 14px;
+    }
+    .result-avatar {
+      width: 42px; height: 42px; background: var(--gray);
+      border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-size: 16px; font-weight: 800;
+      color: var(--muted); flex-shrink: 0;
+    }
+    .result-info { flex: 1; }
+    .result-info strong { font-size: 15px; display: block; margin-bottom: 3px; }
+    .result-info span   { font-size: 12px; color: var(--muted); }
+    .result-item .btn-sel {
+      background: var(--black); color: #fff; border: none;
+      padding: 9px 16px; border-radius: 20px; font-size: 13px;
+      font-weight: 700; cursor: pointer; flex-shrink: 0;
     }
 
-    #successScreen h2 { font-size: 26px; font-weight: 800; margin-bottom: 10px; }
-    #successScreen p  { font-size: 15px; color: var(--muted); line-height: 1.6; margin-bottom: 32px; }
+    .search-empty {
+      text-align: center; padding: 40px 20px;
+      color: var(--muted); font-size: 14px;
+    }
+    .search-empty span { display: block; font-size: 36px; margin-bottom: 12px; }
   </style>
 </head>
 <body>
 
-<div id="app">
+<!-- =====================================================
+     PANTALLA 1 — BUSCAR CONTACTO
+===================================================== -->
+<div class="screen active" id="screenBuscar">
 
-  <!-- HEADER -->
   <header class="app-header">
-    <div class="logo">GWA</div>
+    <div class="header-logo">GWA</div>
     <div>
       <h1>Global Work Agency</h1>
-      <p>Perfilamiento de aspirante</p>
+      <p>Nuevo perfilamiento</p>
     </div>
   </header>
 
-  <!-- PROGRESS -->
+  <div class="scroll-area">
+    <div class="campo" style="margin-bottom:20px;">
+      <label>Busca el contacto en GHL</label>
+      <div class="search-input-wrap">
+        <span>🔍</span>
+        <input
+          type="search"
+          id="buscadorInput"
+          placeholder="Teléfono, nombre o correo..."
+          autocomplete="off"
+          autocorrect="off"
+          spellcheck="false"
+        >
+      </div>
+    </div>
+
+    <div id="resultadosBusqueda">
+      <div class="search-empty">
+        <span>👤</span>
+        Escribe el teléfono o nombre del aspirante para buscarlo
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     PANTALLA 2 — FORMULARIO (5 PASOS)
+===================================================== -->
+<div class="screen" id="screenForm">
+
+  <header class="app-header">
+    <button class="back-btn" onclick="volverBusqueda()">‹</button>
+    <div>
+      <h1 id="formHeaderTitle">Perfilamiento</h1>
+      <p id="formHeaderSub">Completa los 5 pasos</p>
+    </div>
+  </header>
+
   <div class="progress-wrap">
     <div class="progress-steps" id="progressSteps"></div>
-    <div class="progress-label" id="progressLabel"></div>
+    <div class="progress-label"  id="progressLabel"></div>
   </div>
 
-  <!-- SCROLL AREA -->
   <div class="scroll-area" id="scrollArea">
 
-    <!-- ===== PASO 1: DATOS ADMINISTRATIVOS ===== -->
+    <!-- PASO 1 — DATOS ADMINISTRATIVOS -->
     <div class="step-section active" data-step="0">
-      <div class="section-title">Datos administrativos</div>
-      <div class="section-sub">Información general del proceso</div>
+      <div id="contactCardWrap"></div>
 
-      <div class="campo">
-        <label>Fecha de carga <span class="req">*</span></label>
-        <input type="date" name="fechaCarga" required>
-      </div>
-
-      <div class="campo">
-        <label>Mes de carga <span class="req">*</span></label>
-        <input type="text" name="mesCarga" placeholder="Ej: Junio 2025" required>
+      <div class="form-grid">
+        <div class="campo">
+          <label>Fecha de carga <span class="req">*</span></label>
+          <input type="date" name="fechaCarga" required>
+        </div>
+        <div class="campo">
+          <label>Mes de carga <span class="req">*</span></label>
+          <input type="text" name="mesCarga" placeholder="Ej: Junio 2025" required>
+        </div>
       </div>
 
       <div class="campo">
@@ -563,24 +431,27 @@
       <div class="campo">
         <label>Precio del proceso <span class="req">*</span></label>
         <div class="precio-row">
-          <select name="divisa" id="divisaSelect">
+          <select name="divisa">
             <option value="COP">$ COP</option>
             <option value="USD">$ USD</option>
             <option value="EUR">€ EUR</option>
           </select>
-          <input type="number" name="precio" id="precioInput" placeholder="0" min="0" step="any" required>
+          <input type="number" name="precio" placeholder="0" min="0" step="any" required>
         </div>
       </div>
     </div>
 
-    <!-- ===== PASO 2: DATOS PERSONALES ===== -->
+    <!-- PASO 2 — DATOS PERSONALES -->
     <div class="step-section" data-step="1">
-      <div class="section-title">Datos personales</div>
-      <div class="section-sub">Información del aspirante</div>
 
       <div class="campo">
-        <label>Nombre completo <span class="req">*</span></label>
+        <label>Nombre aspirante <span class="req">*</span></label>
         <input type="text" name="name" placeholder="Nombre y apellidos" required>
+      </div>
+
+      <div class="campo">
+        <label>Ciudad de residencia <span class="req">*</span></label>
+        <input type="text" name="ciudadResidencia" placeholder="Ciudad" required>
       </div>
 
       <div class="form-grid">
@@ -588,7 +459,6 @@
           <label>Fecha de nacimiento <span class="req">*</span></label>
           <input type="date" name="fechaNacimiento" required>
         </div>
-
         <div class="campo">
           <label>Edad <span class="req">*</span></label>
           <input type="number" name="edad" min="18" max="80" placeholder="18" required>
@@ -605,7 +475,6 @@
             <option>Otro</option>
           </select>
         </div>
-
         <div class="campo">
           <label>Nacionalidad <span class="req">*</span></label>
           <select name="nacionalidad" required>
@@ -635,16 +504,6 @@
         </div>
       </div>
 
-      <div class="campo">
-        <label>Ciudad de residencia <span class="req">*</span></label>
-        <input type="text" name="ciudadResidencia" placeholder="Ciudad" required>
-      </div>
-
-      <div class="campo">
-        <label>Dirección <span class="req">*</span></label>
-        <input type="text" name="direccion" placeholder="Dirección completa" required>
-      </div>
-
       <div class="form-grid">
         <div class="campo">
           <label>Tipo de documento <span class="req">*</span></label>
@@ -656,7 +515,6 @@
             <option>Pasaporte</option>
           </select>
         </div>
-
         <div class="campo">
           <label>Número <span class="req">*</span></label>
           <input type="text" name="documento" placeholder="Número" required>
@@ -674,66 +532,67 @@
       </div>
 
       <div class="campo">
+        <label>Dirección <span class="req">*</span></label>
+        <input type="text" name="direccion" placeholder="Dirección completa" required>
+      </div>
+
+      <div class="campo">
         <label>Profesión <span class="req">*</span></label>
         <input type="text" name="profesion" placeholder="Profesión u oficio" required>
       </div>
     </div>
 
-    <!-- ===== PASO 3: DOCUMENTOS ===== -->
+    <!-- PASO 3 — DOCUMENTOS -->
     <div class="step-section" data-step="2">
-      <div class="section-title">Documentos</div>
-      <div class="section-sub">Adjunta los archivos en PDF</div>
 
-      <div class="file-item" onclick="triggerFile('acuerdo')">
+      <div class="file-item" id="fi-acuerdo" onclick="triggerFile('acuerdo')">
         <div class="file-icon">📄</div>
         <div class="file-info">
           <label>Acuerdo de voluntades</label>
-          <div class="file-status" id="status-acuerdo">Sin archivo</div>
+          <div class="file-status" id="fs-acuerdo">Sin archivo</div>
         </div>
-        <input type="file" name="acuerdo" accept="application/pdf" class="file-input-hidden" id="file-acuerdo" required onchange="updateFileStatus('acuerdo', this)">
+        <input type="file" name="acuerdo" accept="application/pdf" class="file-input-hidden" id="file-acuerdo" required onchange="updateFile('acuerdo',this)">
       </div>
 
-      <div class="file-item" onclick="triggerFile('cv')">
+      <div class="file-item" id="fi-cv" onclick="triggerFile('cv')">
         <div class="file-icon">📋</div>
         <div class="file-info">
           <label>Hoja de vida</label>
-          <div class="file-status" id="status-cv">Sin archivo</div>
+          <div class="file-status" id="fs-cv">Sin archivo</div>
         </div>
-        <input type="file" name="cv" accept="application/pdf" class="file-input-hidden" id="file-cv" required onchange="updateFileStatus('cv', this)">
+        <input type="file" name="cv" accept="application/pdf" class="file-input-hidden" id="file-cv" required onchange="updateFile('cv',this)">
       </div>
 
-      <div class="file-item" onclick="triggerFile('doc')">
+      <div class="file-item" id="fi-doc" onclick="triggerFile('doc')">
         <div class="file-icon">🪪</div>
         <div class="file-info">
           <label>Documento de identidad</label>
-          <div class="file-status" id="status-doc">Sin archivo</div>
+          <div class="file-status" id="fs-doc">Sin archivo</div>
         </div>
-        <input type="file" name="doc" accept="application/pdf" class="file-input-hidden" id="file-doc" required onchange="updateFileStatus('doc', this)">
+        <input type="file" name="doc" accept="application/pdf" class="file-input-hidden" id="file-doc" required onchange="updateFile('doc',this)">
       </div>
 
-      <div class="file-item" onclick="triggerFile('pasaporte')">
+      <div class="file-item" id="fi-pasaporte" onclick="triggerFile('pasaporte')">
         <div class="file-icon">🛂</div>
         <div class="file-info">
           <label>Pasaporte</label>
-          <div class="file-status" id="status-pasaporte">Sin archivo</div>
+          <div class="file-status" id="fs-pasaporte">Sin archivo</div>
         </div>
-        <input type="file" name="pasaporte" accept="application/pdf" class="file-input-hidden" id="file-pasaporte" required onchange="updateFileStatus('pasaporte', this)">
+        <input type="file" name="pasaporte" accept="application/pdf" class="file-input-hidden" id="file-pasaporte" required onchange="updateFile('pasaporte',this)">
       </div>
 
-      <div class="file-item" onclick="triggerFile('pago')">
+      <div class="file-item" id="fi-pago" onclick="triggerFile('pago')">
         <div class="file-icon">💳</div>
         <div class="file-info">
           <label>Soporte de pago</label>
-          <div class="file-status" id="status-pago">Sin archivo</div>
+          <div class="file-status" id="fs-pago">Sin archivo</div>
         </div>
-        <input type="file" name="pago" accept="application/pdf" class="file-input-hidden" id="file-pago" required onchange="updateFileStatus('pago', this)">
+        <input type="file" name="pago" accept="application/pdf" class="file-input-hidden" id="file-pago" required onchange="updateFile('pago',this)">
       </div>
     </div>
 
-    <!-- ===== PASO 4: PASAPORTE ===== -->
+    <!-- PASO 4 — PASAPORTE Y VIAJE -->
     <div class="step-section" data-step="3">
-      <div class="section-title">Pasaporte</div>
-      <div class="section-sub">Datos del documento de viaje</div>
 
       <div class="campo">
         <label>Número de pasaporte</label>
@@ -741,7 +600,7 @@
       </div>
 
       <div class="campo">
-        <label>¿Vigente?</label>
+        <label>¿Pasaporte vigente?</label>
         <select name="vigente">
           <option value="">Seleccionar</option>
           <option>Sí</option>
@@ -751,36 +610,31 @@
 
       <div class="form-grid">
         <div class="campo">
-          <label>Fecha de expedición</label>
+          <label>Fecha expedición</label>
           <input type="date" name="fechaExpedicion">
         </div>
-
         <div class="campo">
-          <label>Fecha de vencimiento</label>
+          <label>Fecha vencimiento</label>
           <input type="date" name="fechaVencimiento">
         </div>
       </div>
     </div>
 
-    <!-- ===== PASO 5: FAMILIA Y EXPERIENCIA ===== -->
+    <!-- PASO 5 — FAMILIA Y EXPERIENCIA -->
     <div class="step-section" data-step="4">
-      <div class="section-title">Familia y experiencia</div>
-      <div class="section-sub">Datos del entorno del aspirante</div>
 
       <div class="form-grid">
         <div class="campo">
           <label>¿Viaja con pareja?</label>
           <select name="pareja">
-            <option value="">No</option>
+            <option value="no">No</option>
             <option value="si">Sí</option>
           </select>
         </div>
-
         <div class="campo">
           <label>Acompañante</label>
           <input type="text" name="acompanante" placeholder="Nombre">
         </div>
-
         <div class="campo">
           <label>¿Sabe inglés?</label>
           <select name="ingles">
@@ -788,7 +642,6 @@
             <option value="si">Sí</option>
           </select>
         </div>
-
         <div class="campo">
           <label>¿Puede conversar?</label>
           <select name="conversacion">
@@ -838,93 +691,182 @@
   <!-- BOTTOM BAR -->
   <div class="bottom-bar">
     <button class="btn btn-secondary" id="btnPrev" onclick="prevStep()" style="display:none;">Atrás</button>
-    <button class="btn btn-primary" id="btnNext" onclick="nextStep()">Continuar →</button>
+    <button class="btn btn-primary"   id="btnNext" onclick="nextStep()">Continuar →</button>
   </div>
 
-</div><!-- /app -->
+</div><!-- /screenForm -->
 
 <!-- TOAST -->
 <div id="toast"></div>
 
 <!-- LOADER -->
 <div id="loader">
-  <div class="loader-spinner"></div>
-  <p>Enviando perfilamiento...</p>
+  <div class="spinner"></div>
+  <p>Subiendo perfilamiento...</p>
 </div>
 
 <!-- SUCCESS -->
 <div id="successScreen">
   <div class="success-icon">✓</div>
-  <h2>¡Perfilamiento enviado!</h2>
-  <p>Los datos fueron registrados correctamente en el sistema. El asesor puede ver el perfil en el CRM.</p>
-  <button class="btn btn-primary" style="max-width:280px; width:100%;" onclick="resetForm()">Nuevo perfilamiento</button>
+  <h2>¡Perfilamiento guardado!</h2>
+  <p>Los datos y documentos fueron registrados en el CRM correctamente.</p>
+  <button class="btn btn-primary" style="max-width:280px;width:100%;" onclick="resetTodo()">Nuevo perfilamiento</button>
 </div>
 
 <script>
-/* =============================================================
+/* ============================================================
    CONFIG
-============================================================= */
-const WEBHOOK_CREAR = "https://app.rioagencymarketing.com/webhook/crear-oportunidad";
+============================================================ */
+const WEBHOOK_BUSCAR = "https://app.rioagencymarketing.com/webhook/buscar-contacto";
+const WEBHOOK_CREAR  = "https://app.rioagencymarketing.com/webhook/crear-oportunidad";
+
 const TOTAL_STEPS = 5;
+const STEP_LABELS = ["Datos administrativos","Datos personales","Documentos","Pasaporte","Familia y experiencia"];
 
-const STEP_LABELS = [
-  "Datos administrativos",
-  "Datos personales",
-  "Documentos",
-  "Pasaporte",
-  "Familia y experiencia"
-];
-
-/* =============================================================
+/* ============================================================
    ESTADO
-============================================================= */
+============================================================ */
 let currentStep = 0;
+let contactoSeleccionado = null;
+let buscarDelay = null;
 
-/* =============================================================
+/* ============================================================
+   PANTALLAS
+============================================================ */
+function irAFormulario() {
+  document.getElementById("screenBuscar").classList.add("behind");
+  document.getElementById("screenForm").classList.add("active");
+}
+
+function volverBusqueda() {
+  document.getElementById("screenForm").classList.remove("active");
+  document.getElementById("screenBuscar").classList.remove("behind");
+  currentStep = 0;
+  showStep(0);
+}
+
+/* ============================================================
+   BÚSQUEDA
+============================================================ */
+document.getElementById("buscadorInput").addEventListener("input", function () {
+  const q = this.value.trim();
+  clearTimeout(buscarDelay);
+  if (q.length < 2) {
+    document.getElementById("resultadosBusqueda").innerHTML = `
+      <div class="search-empty"><span>👤</span>Escribe el teléfono o nombre del aspirante para buscarlo</div>`;
+    return;
+  }
+  buscarDelay = setTimeout(() => buscarContacto(q), 300);
+});
+
+async function buscarContacto(texto) {
+  document.getElementById("resultadosBusqueda").innerHTML =
+    `<div class="search-empty"><span>⏳</span>Buscando...</div>`;
+  try {
+    const res = await fetch(WEBHOOK_BUSCAR, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: texto })
+    });
+    const data = await res.json();
+    mostrarResultados(data);
+  } catch (e) {
+    document.getElementById("resultadosBusqueda").innerHTML =
+      `<div class="search-empty"><span>⚠️</span>Error de conexión</div>`;
+  }
+}
+
+function mostrarResultados(c) {
+  const cont = document.getElementById("resultadosBusqueda");
+  if (!c || !c.phone) {
+    cont.innerHTML = `<div class="search-empty"><span>🔎</span>Sin resultados</div>`;
+    return;
+  }
+  const initials = (c.name || "?")[0].toUpperCase();
+  cont.innerHTML = `
+    <div class="result-item">
+      <div class="result-avatar">${initials}</div>
+      <div class="result-info">
+        <strong>${c.name || ""} ${c.lastName || ""}</strong>
+        <span>📞 ${c.phone || "—"}</span><br>
+        <span>✉️ ${c.email || "—"}</span><br>
+        <span>👤 ${c.assignedTo || "Sin asesor"}</span>
+      </div>
+      <button class="btn-sel" onclick='seleccionarContacto(${JSON.stringify(c)})'>
+        Seleccionar
+      </button>
+    </div>`;
+}
+
+function seleccionarContacto(c) {
+  contactoSeleccionado = c;
+
+  // Mostrar card en paso 1
+  const initials = (c.name || "?")[0].toUpperCase();
+  document.getElementById("contactCardWrap").innerHTML = `
+    <div class="contact-card">
+      <div class="contact-avatar">${initials}</div>
+      <div>
+        <h3>${c.name || ""} ${c.lastName || ""}</h3>
+        <p>📞 ${c.phone || ""} &nbsp;|&nbsp; ${c.assignedTo || ""}</p>
+      </div>
+      <button class="change-btn" onclick="volverBusqueda()">Cambiar</button>
+    </div>`;
+
+  // Prerellenar nombre y teléfono si existen
+  const nameInput = document.querySelector('[name="name"]');
+  const telInput  = document.querySelector('[name="telefono"]');
+  const emailInput = document.querySelector('[name="email"]');
+  if (nameInput && c.name) nameInput.value = (c.name + " " + (c.lastName||"")).trim();
+  if (telInput  && c.phone) telInput.value = c.phone;
+  if (emailInput && c.email) emailInput.value = c.email;
+
+  // Actualizar header
+  document.getElementById("formHeaderTitle").textContent = c.name || "Perfilamiento";
+  document.getElementById("formHeaderSub").textContent   = c.phone || "";
+
+  currentStep = 0;
+  showStep(0);
+  irAFormulario();
+}
+
+/* ============================================================
    PROGRESS BAR
-============================================================= */
+============================================================ */
 function renderProgress() {
-  const wrap = document.getElementById("progressSteps");
+  const wrap  = document.getElementById("progressSteps");
   const label = document.getElementById("progressLabel");
   wrap.innerHTML = "";
-
   for (let i = 0; i < TOTAL_STEPS; i++) {
     const dot = document.createElement("div");
-    dot.className = "ps-dot";
-    if (i < currentStep)  dot.className += " done";
-    if (i === currentStep) dot.className += " active";
+    dot.className = "ps-dot" + (i < currentStep ? " done" : i === currentStep ? " active" : "");
     dot.textContent = i < currentStep ? "✓" : i + 1;
     wrap.appendChild(dot);
-
     if (i < TOTAL_STEPS - 1) {
       const line = document.createElement("div");
       line.className = "ps-line" + (i < currentStep ? " done" : "");
       wrap.appendChild(line);
     }
   }
-
   label.innerHTML = `Paso <span>${currentStep + 1} de ${TOTAL_STEPS}</span> — ${STEP_LABELS[currentStep]}`;
 }
 
-/* =============================================================
-   NAVEGACIÓN
-============================================================= */
+/* ============================================================
+   NAVEGACIÓN PASOS
+============================================================ */
 function showStep(idx) {
   document.querySelectorAll(".step-section").forEach((s, i) => {
     s.classList.toggle("active", i === idx);
   });
-
   document.getElementById("btnPrev").style.display = idx === 0 ? "none" : "";
   document.getElementById("btnNext").textContent =
     idx === TOTAL_STEPS - 1 ? "Enviar perfilamiento ✓" : "Continuar →";
-
   document.getElementById("scrollArea").scrollTop = 0;
   renderProgress();
 }
 
 function nextStep() {
   if (!validateStep(currentStep)) return;
-
   if (currentStep < TOTAL_STEPS - 1) {
     currentStep++;
     showStep(currentStep);
@@ -934,93 +876,92 @@ function nextStep() {
 }
 
 function prevStep() {
-  if (currentStep > 0) {
-    currentStep--;
-    showStep(currentStep);
-  }
+  if (currentStep > 0) { currentStep--; showStep(currentStep); }
 }
 
-/* =============================================================
-   VALIDACIÓN POR PASO
-============================================================= */
+/* ============================================================
+   VALIDACIÓN
+============================================================ */
 function validateStep(step) {
   const section = document.querySelector(`.step-section[data-step="${step}"]`);
-  const fields = section.querySelectorAll("input[required], select[required], textarea[required]");
-
+  const fields  = section.querySelectorAll("input[required], select[required]");
   for (const f of fields) {
     if (f.type === "file") {
-      if (!f.files || f.files.length === 0) {
-        toast(`Adjunta el archivo: ${f.closest(".file-item").querySelector("label").textContent}`);
+      if (!f.files || !f.files.length) {
+        const label = f.closest(".file-item").querySelector("label").textContent;
+        toast(`Adjunta: ${label}`);
         return false;
       }
     } else if (!f.value.trim()) {
       f.focus();
-      toast("Completa todos los campos requeridos");
+      toast("Completa todos los campos obligatorios");
       return false;
     }
   }
   return true;
 }
 
-/* =============================================================
+/* ============================================================
    ARCHIVOS
-============================================================= */
+============================================================ */
 function triggerFile(key) {
   document.getElementById("file-" + key).click();
 }
 
-function updateFileStatus(key, input) {
-  const el = document.getElementById("status-" + key);
+function updateFile(key, input) {
+  const status = document.getElementById("fs-" + key);
+  const item   = document.getElementById("fi-" + key);
   if (input.files && input.files[0]) {
-    const name = input.files[0].name;
-    const size = (input.files[0].size / 1024).toFixed(0);
-    el.textContent = `✓ ${name} (${size} KB)`;
-    el.className = "file-status ok";
+    const kb = (input.files[0].size / 1024).toFixed(0);
+    status.textContent = `✓ ${input.files[0].name} (${kb} KB)`;
+    status.className = "file-status ok";
+    item.classList.add("ok");
   } else {
-    el.textContent = "Sin archivo";
-    el.className = "file-status";
+    status.textContent = "Sin archivo";
+    status.className = "file-status";
+    item.classList.remove("ok");
   }
 }
 
-/* =============================================================
+/* ============================================================
    PAÍS → TIPO PROCESO
-============================================================= */
+============================================================ */
 document.getElementById("paisSelect").addEventListener("change", function () {
   const show = this.value === "Polonia";
   document.getElementById("campoTipoProceso").style.display = show ? "block" : "none";
   if (!show) document.getElementById("tipoProceso").value = "";
 });
 
-/* =============================================================
-   SUBMIT
-============================================================= */
+/* ============================================================
+   ENVÍO
+============================================================ */
 async function submitForm() {
-  const form = document.querySelector("form") || buildFormFromDOM();
+  if (!contactoSeleccionado?.contactId) {
+    toast("Error: no hay contacto seleccionado");
+    return;
+  }
+
   const fd = new FormData();
+  fd.append("contactId", contactoSeleccionado.contactId);
 
-  // Recolectar todos los inputs/selects/textareas del documento
-  document.querySelectorAll(".step-section").forEach(section => {
-    section.querySelectorAll("input, select, textarea").forEach(f => {
-      if (!f.name) return;
-      if (f.type === "file") {
-        if (f.files && f.files[0]) fd.append(f.name, f.files[0]);
-      } else {
-        fd.append(f.name, f.value);
-      }
-    });
+  // Recolectar todos los campos del formulario
+  document.querySelectorAll("#screenForm input, #screenForm select, #screenForm textarea").forEach(f => {
+    if (!f.name || f.closest(".contact-card")) return;
+    if (f.type === "file") {
+      if (f.files && f.files[0]) fd.append(f.name, f.files[0]);
+    } else {
+      fd.append(f.name, f.value);
+    }
   });
-
-  // Necesita un contactId — en este flujo es un formulario de creación nueva
-  // El webhook de crear-oportunidad lo maneja sin contactId previo si no existe
-  // Agregamos un flag para indicar que viene de la app móvil
-  fd.append("source", "app_movil");
 
   try {
     document.getElementById("loader").classList.add("show");
 
     const res = await fetch(WEBHOOK_CREAR, { method: "POST", body: fd });
-
     if (!res.ok) throw new Error("Error servidor");
+
+    const data = await res.json();
+    contactoSeleccionado.opportunityId = data.opportunityId;
 
     document.getElementById("loader").classList.remove("show");
     document.getElementById("successScreen").classList.add("show");
@@ -1032,50 +973,62 @@ async function submitForm() {
   }
 }
 
-/* =============================================================
+/* ============================================================
    RESET
-============================================================= */
-function resetForm() {
+============================================================ */
+function resetTodo() {
   document.getElementById("successScreen").classList.remove("show");
-  document.querySelectorAll("input, select, textarea").forEach(f => {
-    if (f.type === "file") {
-      f.value = "";
-    } else if (f.tagName === "SELECT") {
-      f.selectedIndex = 0;
-    } else {
-      f.value = "";
-    }
+
+  // Limpiar formulario
+  document.querySelectorAll("#screenForm input, #screenForm select, #screenForm textarea").forEach(f => {
+    if (f.type === "file") f.value = "";
+    else if (f.tagName === "SELECT") f.selectedIndex = 0;
+    else f.value = "";
   });
-  // Reset file statuses
+
+  // Limpiar estados de archivos
   ["acuerdo","cv","doc","pasaporte","pago"].forEach(k => {
-    const el = document.getElementById("status-" + k);
-    if (el) { el.textContent = "Sin archivo"; el.className = "file-status"; }
+    const s = document.getElementById("fs-" + k);
+    const i = document.getElementById("fi-" + k);
+    if (s) { s.textContent = "Sin archivo"; s.className = "file-status"; }
+    if (i) i.classList.remove("ok");
   });
+
   document.getElementById("campoTipoProceso").style.display = "none";
+  document.getElementById("contactCardWrap").innerHTML = "";
+  document.getElementById("buscadorInput").value = "";
+  document.getElementById("resultadosBusqueda").innerHTML =
+    `<div class="search-empty"><span>👤</span>Escribe el teléfono o nombre del aspirante para buscarlo</div>`;
+
+  contactoSeleccionado = null;
   currentStep = 0;
+
+  // Volver a pantalla de búsqueda
+  document.getElementById("screenForm").classList.remove("active");
+  document.getElementById("screenBuscar").classList.remove("behind");
   showStep(0);
 }
 
-/* =============================================================
+/* ============================================================
    TOAST
-============================================================= */
-function toast(msg, duration = 3000) {
+============================================================ */
+function toast(msg, ms = 3000) {
   const el = document.getElementById("toast");
   el.textContent = msg;
   el.classList.add("show");
-  setTimeout(() => el.classList.remove("show"), duration);
+  setTimeout(() => el.classList.remove("show"), ms);
 }
 
-/* =============================================================
+/* ============================================================
    SERVICE WORKER
-============================================================= */
+============================================================ */
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js").catch(() => {});
 }
 
-/* =============================================================
+/* ============================================================
    INIT
-============================================================= */
+============================================================ */
 renderProgress();
 </script>
 </body>
