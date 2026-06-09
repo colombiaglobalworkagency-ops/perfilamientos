@@ -2,7 +2,7 @@
   "name": "Global Work Agency",
   "short_name": "GWA",
   "description": "Formulario de perfilamiento de aspirantes",
-  "start_url": "/index.html",
+  "start_url": "/perfilamientos/index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#111111",
