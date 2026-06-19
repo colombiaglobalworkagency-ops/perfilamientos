@@ -133,6 +133,11 @@
       box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
     }
     .campo textarea { min-height: 88px; resize: vertical; line-height: 1.5; }
+    .campo input.locked {
+      background: #f3f3f3; color: #555; cursor: default;
+      pointer-events: none; border-style: dashed;
+    }
+    .campo input.locked::-webkit-calendar-picker-indicator { display: none; }
 
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
     .form-grid .full { grid-column: 1/-1; }
@@ -367,11 +372,11 @@
       <div class="form-grid">
         <div class="campo">
           <label>Fecha de carga <span class="req">*</span></label>
-          <input type="date" name="fechaCarga" required>
+          <input type="date" name="fechaCarga" class="locked" readonly tabindex="-1" required>
         </div>
         <div class="campo">
           <label>Mes de carga <span class="req">*</span></label>
-          <input type="text" name="mesCarga" placeholder="Ej: Junio 2025" required>
+          <input type="text" name="mesCarga" class="locked" readonly tabindex="-1" required>
         </div>
       </div>
 
@@ -1003,6 +1008,9 @@ function resetTodo() {
   contactoSeleccionado = null;
   currentStep = 0;
 
+  // Reaplicar fecha y mes de carga automáticos
+  setFechaCargaAuto();
+
   // Volver a pantalla de búsqueda
   document.getElementById("screenForm").classList.remove("active");
   document.getElementById("screenBuscar").classList.remove("behind");
@@ -1027,8 +1035,26 @@ if ("serviceWorker" in navigator) {
 }
 
 /* ============================================================
+   FECHA / MES DE CARGA AUTOMÁTICOS (no editables)
+============================================================ */
+function setFechaCargaAuto() {
+  const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
+                 "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  const hoy = new Date();
+  const y = hoy.getFullYear();
+  const m = String(hoy.getMonth() + 1).padStart(2, "0");
+  const d = String(hoy.getDate()).padStart(2, "0");
+
+  const fecha = document.querySelector('input[name="fechaCarga"]');
+  const mes   = document.querySelector('input[name="mesCarga"]');
+  if (fecha) fecha.value = `${y}-${m}-${d}`;
+  if (mes)   mes.value   = `${meses[hoy.getMonth()]} ${y}`;
+}
+
+/* ============================================================
    INIT
 ============================================================ */
+setFechaCargaAuto();
 renderProgress();
 </script>
 </body>
