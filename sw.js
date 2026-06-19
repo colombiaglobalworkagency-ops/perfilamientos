@@ -1,6 +1,6 @@
-const CACHE = "gwa-v2";
+const CACHE = "gwa-v3";
 const BASE = self.location.pathname.replace(/\/sw\.js$/, "");
-const ASSETS = [BASE + "/", BASE + "/index.html", BASE + "/manifest.json", BASE + "/jspdf.umd.min.js"];
+const ASSETS = [BASE + "/", BASE + "/index.html", BASE + "/manifest.json", BASE + "/jspdf.umd.min.js", BASE + "/logo.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
