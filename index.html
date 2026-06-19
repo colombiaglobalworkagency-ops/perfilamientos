@@ -234,6 +234,28 @@
     .scan-actions .btn { flex: 1; }
     .btn[disabled] { opacity: 0.45; pointer-events: none; }
 
+    /* ---- CÁMARA EN VIVO CON MARCO GUÍA ---- */
+    .cam-wrap {
+      position: relative; width: 100%; height: 62vh; max-height: 540px;
+      background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 14px;
+    }
+    #scanVideo { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .cam-frame {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      border: 3px solid #fff; border-radius: 12px;
+      box-shadow: 0 0 0 2000px rgba(0,0,0,0.5);
+      pointer-events: none;
+    }
+    .cam-frame.frame-doc  { width: 88%; aspect-ratio: 1.586; }
+    .cam-frame.frame-pass { height: 82%; aspect-ratio: 0.70; }
+    .cam-frame::before, .cam-frame::after,
+    .cam-corner { content: ""; }
+    .cam-tip {
+      position: absolute; left: 12px; right: 12px; bottom: 12px; text-align: center;
+      color: #fff; font-size: 13px; font-weight: 600;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.9); pointer-events: none;
+    }
+
     /* ---- CARD ---- */
     .card {
       background:#fff; border-radius:var(--r);
@@ -947,11 +969,28 @@
       <h3 id="scanTitle">Escanear documento</h3>
       <button class="scan-close" type="button" onclick="cerrarEscaner()">&times;</button>
     </div>
-    <p class="scan-hint" id="scanHint"></p>
-    <div class="scan-pages" id="scanPages"></div>
-    <div class="scan-actions">
-      <button class="btn btn-secondary" type="button" onclick="cerrarEscaner()">Cancelar</button>
-      <button class="btn btn-primary" type="button" id="scanConfirm" onclick="confirmarEscaner()">Listo</button>
+
+    <!-- Vista lista de páginas escaneadas -->
+    <div id="scanListView">
+      <p class="scan-hint" id="scanHint"></p>
+      <div class="scan-pages" id="scanPages"></div>
+      <div class="scan-actions">
+        <button class="btn btn-secondary" type="button" onclick="cerrarEscaner()">Cancelar</button>
+        <button class="btn btn-primary" type="button" id="scanConfirm" onclick="confirmarEscaner()">Listo</button>
+      </div>
+    </div>
+
+    <!-- Vista cámara en vivo con marco -->
+    <div id="scanCamView" style="display:none">
+      <div class="cam-wrap">
+        <video id="scanVideo" playsinline muted></video>
+        <div class="cam-frame" id="scanFrame"></div>
+        <div class="cam-tip" id="scanTip">Encuadra el documento dentro del marco</div>
+      </div>
+      <div class="scan-actions">
+        <button class="btn btn-secondary" type="button" onclick="cancelarCamara()">Atrás</button>
+        <button class="btn btn-primary" type="button" onclick="capturarFoto()">📸 Capturar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1188,18 +1227,102 @@ const SCAN_CONFIG = {
 const scanStore = { doc: [], pasaporte: [] };
 let scanKey = null;
 
+let scanStream = null;
+
 function abrirEscaner(key) {
   scanKey = key;
   const cfg = SCAN_CONFIG[key];
   document.getElementById("scanTitle").textContent = cfg.titulo;
   document.getElementById("scanHint").textContent = cfg.hint;
+  mostrarVistaLista();
   renderEscaner();
   document.getElementById("scanOverlay").classList.add("show");
 }
 
 function cerrarEscaner() {
+  detenerCamara();
   document.getElementById("scanOverlay").classList.remove("show");
   scanKey = null;
+}
+
+function mostrarVistaLista() {
+  document.getElementById("scanCamView").style.display = "none";
+  document.getElementById("scanListView").style.display = "block";
+}
+
+/* ---- Cámara en vivo con marco guía ---- */
+async function iniciarCamara() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    return tomarFoto(); // fallback cámara nativa
+  }
+  const frame = document.getElementById("scanFrame");
+  frame.className = "cam-frame " + (scanKey === "doc" ? "frame-doc" : "frame-pass");
+  document.getElementById("scanTip").textContent =
+    scanKey === "doc"
+      ? "Encuadra el documento dentro del marco y captura"
+      : "Encuadra la página del pasaporte dentro del marco";
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false
+    });
+  } catch (err) {
+    return tomarFoto(); // sin permiso/soporte → cámara nativa
+  }
+  const v = document.getElementById("scanVideo");
+  v.srcObject = scanStream;
+  await v.play().catch(() => {});
+  document.getElementById("scanListView").style.display = "none";
+  document.getElementById("scanCamView").style.display = "block";
+}
+
+function detenerCamara() {
+  if (scanStream) {
+    scanStream.getTracks().forEach(t => t.stop());
+    scanStream = null;
+  }
+  const v = document.getElementById("scanVideo");
+  if (v) v.srcObject = null;
+}
+
+function cancelarCamara() {
+  detenerCamara();
+  mostrarVistaLista();
+  renderEscaner();
+}
+
+function capturarFoto() {
+  const v = document.getElementById("scanVideo");
+  if (!v.videoWidth || !v.videoHeight) {
+    toast("La cámara aún no está lista");
+    return;
+  }
+  const vr = v.getBoundingClientRect();
+  const fr = document.getElementById("scanFrame").getBoundingClientRect();
+  const vw = v.videoWidth, vh = v.videoHeight;
+  // Mapear el marco (coords de pantalla) a píxeles reales del video (object-fit: cover)
+  const scale = Math.max(vr.width / vw, vr.height / vh);
+  const offX = (vw * scale - vr.width) / 2;
+  const offY = (vh * scale - vr.height) / 2;
+  let sx = ((fr.left - vr.left) + offX) / scale;
+  let sy = ((fr.top - vr.top) + offY) / scale;
+  let sw = fr.width / scale;
+  let sh = fr.height / scale;
+  sx = Math.max(0, sx); sy = Math.max(0, sy);
+  sw = Math.min(sw, vw - sx); sh = Math.min(sh, vh - sy);
+  // Recorte + reducción de tamaño
+  const max = 1600;
+  let ow = sw, oh = sh;
+  if (ow > max || oh > max) {
+    const s = Math.min(max / ow, max / oh);
+    ow = Math.round(ow * s); oh = Math.round(oh * s);
+  }
+  const c = document.createElement("canvas");
+  c.width = ow; c.height = oh;
+  c.getContext("2d").drawImage(v, sx, sy, sw, sh, 0, 0, ow, oh);
+  scanStore[scanKey].push({ data: c.toDataURL("image/jpeg", 0.85), w: ow, h: oh });
+  // Volver a la lista para revisar / agregar otra
+  cancelarCamara();
 }
 
 function tomarFoto() {
@@ -1250,7 +1373,7 @@ function renderEscaner() {
       </div>`;
   });
   html += `
-    <div class="scan-add" onclick="tomarFoto()">
+    <div class="scan-add" onclick="iniciarCamara()">
       <span>📷</span>${pages.length ? "Agregar página" : "Tomar foto"}
     </div>`;
   cont.innerHTML = html;
