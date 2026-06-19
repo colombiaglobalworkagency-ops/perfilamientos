@@ -187,6 +187,53 @@
     .file-status.ok { color: #16a34a; font-weight: 600; }
     .file-input-hidden { display: none; }
 
+    /* ---- ESCÁNER DE DOCUMENTOS ---- */
+    .scan-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      display: none; align-items: flex-end; justify-content: center;
+      z-index: 1000;
+    }
+    .scan-overlay.show { display: flex; }
+    .scan-sheet {
+      background: #fff; width: 100%; max-width: 480px;
+      border-radius: 18px 18px 0 0; padding: 18px 18px 22px;
+      max-height: 90vh; display: flex; flex-direction: column;
+      animation: popIn 0.18s ease;
+    }
+    .scan-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    .scan-head h3 { font-size: 17px; margin: 0; }
+    .scan-close { background: none; border: none; font-size: 26px; line-height: 1; cursor: pointer; color: var(--muted); }
+    .scan-hint { font-size: 13px; color: var(--muted); margin: 2px 0 14px; }
+    .scan-pages {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+      overflow-y: auto; padding: 2px; margin-bottom: 14px;
+    }
+    .scan-thumb {
+      position: relative; aspect-ratio: 3/4; border-radius: 10px;
+      overflow: hidden; border: 1.5px solid var(--border); background: var(--gray);
+    }
+    .scan-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .scan-thumb .pg-num {
+      position: absolute; left: 6px; top: 6px; background: rgba(0,0,0,0.7);
+      color: #fff; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 20px;
+    }
+    .scan-thumb .pg-del {
+      position: absolute; right: 5px; top: 5px; width: 24px; height: 24px;
+      background: rgba(0,0,0,0.7); color: #fff; border: none; border-radius: 50%;
+      font-size: 14px; line-height: 1; cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+    }
+    .scan-add {
+      aspect-ratio: 3/4; border: 2px dashed var(--border); border-radius: 10px;
+      background: #fafafa; display: flex; flex-direction: column; gap: 6px;
+      align-items: center; justify-content: center; cursor: pointer;
+      color: var(--muted); font-size: 12px; font-weight: 600; text-align: center;
+    }
+    .scan-add span { font-size: 24px; }
+    .scan-actions { display: flex; gap: 10px; }
+    .scan-actions .btn { flex: 1; }
+    .btn[disabled] { opacity: 0.45; pointer-events: none; }
+
     /* ---- CARD ---- */
     .card {
       background:#fff; border-radius:var(--r);
@@ -743,22 +790,22 @@
         <input type="file" name="cv" accept="application/pdf" class="file-input-hidden" id="file-cv" required onchange="updateFile('cv',this)">
       </div>
 
-      <div class="file-item" id="fi-doc" onclick="triggerFile('doc')">
+      <div class="file-item" id="fi-doc" onclick="abrirEscaner('doc')">
         <div class="file-icon">🪪</div>
         <div class="file-info">
           <label>Documento de identidad</label>
-          <div class="file-status" id="fs-doc">Sin archivo</div>
+          <div class="file-status" id="fs-doc">Escanea frente y reverso</div>
         </div>
-        <input type="file" name="doc" accept="application/pdf" class="file-input-hidden" id="file-doc" required onchange="updateFile('doc',this)">
+        <input type="file" name="doc" accept="application/pdf" class="file-input-hidden" id="file-doc" required>
       </div>
 
-      <div class="file-item" id="fi-pasaporte" onclick="triggerFile('pasaporte')">
+      <div class="file-item" id="fi-pasaporte" onclick="abrirEscaner('pasaporte')">
         <div class="file-icon">🛂</div>
         <div class="file-info">
           <label>Pasaporte</label>
-          <div class="file-status" id="fs-pasaporte">Sin archivo</div>
+          <div class="file-status" id="fs-pasaporte">Escanea las páginas usadas</div>
         </div>
-        <input type="file" name="pasaporte" accept="application/pdf" class="file-input-hidden" id="file-pasaporte" required onchange="updateFile('pasaporte',this)">
+        <input type="file" name="pasaporte" accept="application/pdf" class="file-input-hidden" id="file-pasaporte" required>
       </div>
 
       <div class="file-item" id="fi-pago" onclick="triggerFile('pago')">
@@ -893,6 +940,24 @@
   <button class="btn btn-primary" style="max-width:280px;width:100%;" onclick="resetTodo()">Nuevo perfilamiento</button>
 </div>
 
+<!-- ESCÁNER DE DOCUMENTOS -->
+<div class="scan-overlay" id="scanOverlay">
+  <div class="scan-sheet">
+    <div class="scan-head">
+      <h3 id="scanTitle">Escanear documento</h3>
+      <button class="scan-close" type="button" onclick="cerrarEscaner()">&times;</button>
+    </div>
+    <p class="scan-hint" id="scanHint"></p>
+    <div class="scan-pages" id="scanPages"></div>
+    <div class="scan-actions">
+      <button class="btn btn-secondary" type="button" onclick="cerrarEscaner()">Cancelar</button>
+      <button class="btn btn-primary" type="button" id="scanConfirm" onclick="confirmarEscaner()">Listo</button>
+    </div>
+  </div>
+</div>
+<input type="file" accept="image/*" capture="environment" id="scanCamera" style="display:none" onchange="agregarPagina(this)">
+
+<script src="jspdf.umd.min.js"></script>
 <script>
 /* ============================================================
    CONFIG
@@ -1104,6 +1169,124 @@ function updateFile(key, input) {
 }
 
 /* ============================================================
+   ESCÁNER DE DOCUMENTOS (identidad y pasaporte → PDF)
+============================================================ */
+const SCAN_CONFIG = {
+  doc: {
+    titulo: "Documento de identidad",
+    hint: "Toma una foto del FRENTE y otra del REVERSO (mínimo 2). Agrega más caras si tu documento las tiene.",
+    min: 2,
+    archivo: "documento_identidad.pdf"
+  },
+  pasaporte: {
+    titulo: "Pasaporte",
+    hint: "Escanea la página de datos y todas las páginas con sellos o visas que tengas (mínimo 1).",
+    min: 1,
+    archivo: "pasaporte.pdf"
+  }
+};
+const scanStore = { doc: [], pasaporte: [] };
+let scanKey = null;
+
+function abrirEscaner(key) {
+  scanKey = key;
+  const cfg = SCAN_CONFIG[key];
+  document.getElementById("scanTitle").textContent = cfg.titulo;
+  document.getElementById("scanHint").textContent = cfg.hint;
+  renderEscaner();
+  document.getElementById("scanOverlay").classList.add("show");
+}
+
+function cerrarEscaner() {
+  document.getElementById("scanOverlay").classList.remove("show");
+  scanKey = null;
+}
+
+function tomarFoto() {
+  document.getElementById("scanCamera").click();
+}
+
+function agregarPagina(input) {
+  const file = input.files && input.files[0];
+  if (!file || !scanKey) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 1600;
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (w > max || h > max) {
+        const s = Math.min(max / w, max / h);
+        w = Math.round(w * s); h = Math.round(h * s);
+      }
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      scanStore[scanKey].push({ data: c.toDataURL("image/jpeg", 0.82), w, h });
+      input.value = "";
+      renderEscaner();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function borrarPagina(idx) {
+  scanStore[scanKey].splice(idx, 1);
+  renderEscaner();
+}
+
+function renderEscaner() {
+  const cont = document.getElementById("scanPages");
+  const cfg = SCAN_CONFIG[scanKey];
+  const pages = scanStore[scanKey];
+  let html = "";
+  pages.forEach((p, i) => {
+    html += `
+      <div class="scan-thumb">
+        <img src="${p.data}" alt="Página ${i + 1}">
+        <span class="pg-num">${i + 1}</span>
+        <button class="pg-del" type="button" onclick="borrarPagina(${i})">&times;</button>
+      </div>`;
+  });
+  html += `
+    <div class="scan-add" onclick="tomarFoto()">
+      <span>📷</span>${pages.length ? "Agregar página" : "Tomar foto"}
+    </div>`;
+  cont.innerHTML = html;
+  document.getElementById("scanConfirm").disabled = pages.length < cfg.min;
+}
+
+async function confirmarEscaner() {
+  const key = scanKey;
+  const cfg = SCAN_CONFIG[key];
+  const pages = scanStore[key];
+  if (pages.length < cfg.min) {
+    toast(`Escanea al menos ${cfg.min} ${cfg.min > 1 ? "páginas" : "página"}`);
+    return;
+  }
+  const { jsPDF } = window.jspdf;
+  let pdf;
+  pages.forEach((p, i) => {
+    const orient = p.w > p.h ? "l" : "p";
+    if (i === 0) pdf = new jsPDF({ unit: "px", format: [p.w, p.h], orientation: orient });
+    else pdf.addPage([p.w, p.h], orient);
+    pdf.addImage(p.data, "JPEG", 0, 0, p.w, p.h);
+  });
+  const blob = pdf.output("blob");
+  const file = new File([blob], cfg.archivo, { type: "application/pdf" });
+  const input = document.getElementById("file-" + key);
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  input.files = dt.files;
+  updateFile(key, input);
+  // Mostrar conteo de páginas en el estado
+  document.getElementById("fs-" + key).textContent =
+    `✓ ${pages.length} ${pages.length > 1 ? "páginas" : "página"} escaneadas (PDF)`;
+  cerrarEscaner();
+}
+
+/* ============================================================
    PAÍS → TIPO PROCESO
 ============================================================ */
 document.getElementById("paisSelect").addEventListener("change", function () {
@@ -1167,12 +1350,20 @@ function resetTodo() {
   });
 
   // Limpiar estados de archivos
+  const textosVacios = {
+    doc: "Escanea frente y reverso",
+    pasaporte: "Escanea las páginas usadas"
+  };
   ["acuerdo","cv","doc","pasaporte","pago"].forEach(k => {
     const s = document.getElementById("fs-" + k);
     const i = document.getElementById("fi-" + k);
-    if (s) { s.textContent = "Sin archivo"; s.className = "file-status"; }
+    if (s) { s.textContent = textosVacios[k] || "Sin archivo"; s.className = "file-status"; }
     if (i) i.classList.remove("ok");
   });
+
+  // Limpiar páginas escaneadas
+  scanStore.doc = [];
+  scanStore.pasaporte = [];
 
   document.getElementById("campoTipoProceso").style.display = "none";
   document.getElementById("contactCardWrap").innerHTML = "";
