@@ -192,8 +192,22 @@
     .file-item.ok .file-icon { background: #dcfce7; }
     .file-info label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 3px; }
     .file-status { font-size: 12px; color: var(--muted); }
-    .file-status.ok { color: #16a34a; font-weight: 600; }
+    .file-status.ok  { color: #16a34a; font-weight: 600; }
+    .file-status.err { color: #dc2626; font-weight: 600; font-size: 11px; }
     .file-input-hidden { display: none; }
+
+    /* Botones escanear / subir */
+    .file-btns {
+      width: 100%; display: flex; gap: 8px; margin-top: 4px;
+    }
+    .btn-scan-opt, .btn-upload-opt {
+      flex: 1; padding: 9px 6px; border: none; border-radius: 10px;
+      font-family: inherit; font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: opacity .2s;
+    }
+    .btn-scan-opt   { background: var(--black); color: #fff; }
+    .btn-upload-opt { background: var(--gray);  color: var(--black); }
+    .btn-scan-opt:active, .btn-upload-opt:active { opacity: .75; }
 
     /* ---- ESCÁNER DE DOCUMENTOS ---- */
     .scan-overlay {
@@ -817,22 +831,30 @@
         <input type="file" name="cv" accept="application/pdf" class="file-input-hidden" id="file-cv" required onchange="updateFile('cv',this)">
       </div>
 
-      <div class="file-item" id="fi-doc" onclick="abrirEscaner('doc')">
+      <div class="file-item" id="fi-doc" style="flex-wrap:wrap;gap:10px;">
         <div class="file-icon">🪪</div>
-        <div class="file-info">
+        <div class="file-info" style="flex:1;">
           <label>Documento de identidad</label>
-          <div class="file-status" id="fs-doc">Escanea frente y reverso</div>
+          <div class="file-status" id="fs-doc">Selecciona una opción</div>
         </div>
-        <input type="file" name="doc" accept="application/pdf" class="file-input-hidden" id="file-doc" required>
+        <div class="file-btns">
+          <button type="button" class="btn-scan-opt" onclick="abrirEscaner('doc')">📷 Escanear</button>
+          <button type="button" class="btn-upload-opt" onclick="triggerFile('doc')">📁 Subir PDF</button>
+        </div>
+        <input type="file" name="doc" accept="application/pdf" class="file-input-hidden" id="file-doc" required onchange="updateFile('doc',this)">
       </div>
 
-      <div class="file-item" id="fi-pasaporte" onclick="abrirEscaner('pasaporte')">
+      <div class="file-item" id="fi-pasaporte" style="flex-wrap:wrap;gap:10px;">
         <div class="file-icon">🛂</div>
-        <div class="file-info">
+        <div class="file-info" style="flex:1;">
           <label>Pasaporte</label>
-          <div class="file-status" id="fs-pasaporte">Escanea las páginas usadas</div>
+          <div class="file-status" id="fs-pasaporte">Selecciona una opción</div>
         </div>
-        <input type="file" name="pasaporte" accept="application/pdf" class="file-input-hidden" id="file-pasaporte" required>
+        <div class="file-btns">
+          <button type="button" class="btn-scan-opt" onclick="abrirEscaner('pasaporte')">📷 Escanear</button>
+          <button type="button" class="btn-upload-opt" onclick="triggerFile('pasaporte')">📁 Subir PDF</button>
+        </div>
+        <input type="file" name="pasaporte" accept="application/pdf" class="file-input-hidden" id="file-pasaporte" required onchange="updateFile('pasaporte',this)">
       </div>
 
       <div class="file-item" id="fi-pago" onclick="triggerFile('pago')">
@@ -1197,12 +1219,23 @@ function triggerFile(key) {
   document.getElementById("file-" + key).click();
 }
 
+const MAX_FILE_MB = 5;
+
 function updateFile(key, input) {
   const status = document.getElementById("fs-" + key);
   const item   = document.getElementById("fi-" + key);
   if (input.files && input.files[0]) {
-    const kb = (input.files[0].size / 1024).toFixed(0);
-    status.textContent = `✓ ${input.files[0].name} (${kb} KB)`;
+    const file = input.files[0];
+    if (file.size > MAX_FILE_MB * 1024 * 1024) {
+      const mb = (file.size / 1024 / 1024).toFixed(1);
+      status.textContent = `⚠️ El archivo pesa ${mb} MB — máximo permitido: ${MAX_FILE_MB} MB`;
+      status.className = "file-status err";
+      item.classList.remove("ok");
+      input.value = "";
+      return;
+    }
+    const kb = (file.size / 1024).toFixed(0);
+    status.textContent = `✓ ${file.name} (${kb} KB)`;
     status.className = "file-status ok";
     item.classList.add("ok");
   } else {
